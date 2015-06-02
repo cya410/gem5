@@ -82,9 +82,18 @@ def config_cache(options, system):
     for i in xrange(options.num_cpus):
         if options.caches:
             icache = icache_class(size=options.l1i_size,
-                                  assoc=options.l1i_assoc)
+                                  assoc=options.l1i_assoc,
+				  withWdis=options.l1i_wdis,
+				  randSeed=options.random_seed,
+                                  wPfail=options.word_pfail
+				 )
             dcache = dcache_class(size=options.l1d_size,
-                                  assoc=options.l1d_assoc)
+                                  assoc=options.l1d_assoc,
+				  withWdis=options.l1d_wdis,
+				  withSPP=options.l1d_spp,
+				  randSeed=options.random_seed,
+                                  wPfail=options.word_pfail
+                                 )
 
             if options.memchecker:
                 dcache_mon = MemCheckerMonitor(warn_only=True)

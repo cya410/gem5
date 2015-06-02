@@ -1118,6 +1118,51 @@ fstatfsFunc(SyscallDesc *desc, int callnum, LiveProcess *process,
     return 0;
 }
 
+//////////////////////////////////////////////////////////////////////////
+template <class OS>
+SyscallReturn
+readvFunc(SyscallDesc *desc, int callnum, LiveProcess *process, ThreadContext *tc)
+{
+        int index = 0;
+        int fd = process->getSyscallArg(tc, index);
+        if (fd < 0 || process->sim_fd(fd) < 0) {
+                return -EBADF;
+        }
+
+        SETranslatingPortProxy &p = tc->getMemProxy();
+
+        uint64_t tiov_base = process->getSyscallArg(tc, index); //XXX target user space buffer
+        size_t count       = process->getSyscallArg(tc, index); //XXX target user space buffer
+        struct iovec hiov[count];                               //XXX simulator space buffer
+
+        // allocate memory for the simulator space buffer array.
+        for (size_t i = 0; i < count; i++) {
+                typename OS::tgt_iovec tiov;
+                p.readBlob(tiov_base + i*sizeof(typename OS::tgt_iovec), (uint8_t*)&tiov, sizeof(typename OS::tgt_iovec));
+                hiov[i].iov_len = TheISA::gtoh(tiov.iov_len);
+                hiov[i].iov_base = new char [hiov[i].iov_len];
+        }
+
+        // make 'readv' system call in the simulator space (x86_64 syscall) 
+        int result = readv(process->sim_fd(fd), hiov, count);
+
+        // copy data from simulator space to target user space 
+        for (size_t i = 0; i < count; i++) {
+                typename OS::tgt_iovec tiov;
+                p.readBlob(tiov_base + i*sizeof(typename OS::tgt_iovec), (uint8_t*)&tiov, sizeof(typename OS::tgt_iovec));
+                p.writeBlob(TheISA::gtoh(tiov.iov_base), (uint8_t *)hiov[i].iov_base, hiov[i].iov_len);
+        }
+
+        // free the temporal buffer in the simulator space
+        for (size_t i = 0; i < count; ++i)
+                delete [] (char *)hiov[i].iov_base;
+
+        if (result < 0)
+                return -errno;
+
+        return result;
+}
+//////////////////////////////////////////////////////////////////////////
 
 /// Target writev() handler.
 template <class OS>

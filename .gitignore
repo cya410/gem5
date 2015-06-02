@@ -1,0 +1,7 @@
+*.o 
+*.obj
+*.lo
+*.pyc
+*.exe
+*.out
+*.txt

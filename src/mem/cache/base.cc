@@ -55,6 +55,8 @@
 #include "mem/cache/mshr.hh"
 #include "sim/full_system.hh"
 
+#include <stdio.h>
+
 using namespace std;
 
 BaseCache::CacheSlavePort::CacheSlavePort(const std::string &_name,
@@ -82,8 +84,46 @@ BaseCache::BaseCache(const Params *p)
       noTargetMSHR(NULL),
       missCount(p->max_miss_count),
       addrRanges(p->addr_ranges.begin(), p->addr_ranges.end()),
+      ////////////////////////////////////////////////
+      withWdis(p->withWdis),
+      withSPP(p->withSPP),
+      wPfail(p->wPfail),
+      randSeed(p->randSeed),
+      isL1(p->isL1),
+      size(p->size),
+      ////////////////////////////////////////////////
       system(p->system)
 {
+	srand(randSeed);
+	unsigned numWords = size >> 2;
+
+	/* initializing word level fault map */
+	unsigned numFaults = 0;
+	for (int i = 0; i < numWords; i++) {
+		int fail = rand() % 1000 + 1;
+		fail < wPfail? FaultMap.push_back(1) : FaultMap.push_back(0);
+		if (fail < wPfail)
+			numFaults++;
+	}
+
+	/* initializing pattern history table */
+	for (int i = 0; i < 256; i++) {
+		PHT.push_back(0xff);	
+	}
+
+	if (isL1 == 1)
+		printf("##### l1i cache #####\n");
+	else if (isL1 == 2)
+		printf("##### l1d cache #####\n");
+	else 
+		printf("##### l2  cache #####\n");
+
+	printf ("size in byte <- %d\n", size);
+	printf ("enable wdis  <- %d\n", withWdis);
+	printf ("enable spp   <- %d\n", withSPP);
+	printf ("word pfail   <- %d\n", wPfail);
+	printf ("random seed  <- %d\n", randSeed);
+	printf ("word failure rate %f\n\n", ((float)numFaults/numWords));
 }
 
 void

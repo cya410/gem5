@@ -90,18 +90,18 @@ class O3_ARM_v7a_FUP(FUPool):
 # Bi-Mode Branch Predictor
 class O3_ARM_v7a_BP(BranchPredictor):
     predType = "bi-mode"
-    globalPredictorSize = 8192
+    globalPredictorSize = 4096
     globalCtrBits = 2
-    choicePredictorSize = 8192
+    choicePredictorSize = 4096
     choiceCtrBits = 2
-    BTBEntries = 2048
-    BTBTagSize = 18
+    BTBEntries = 512
+    BTBTagSize = 8
     RASSize = 16
     instShiftAmt = 2
 
 class O3_ARM_v7a_3(DerivO3CPU):
-    LQEntries = 16
-    SQEntries = 16
+    LQEntries = 64
+    SQEntries = 64
     LSQDepCheckShift = 0
     LFSTSize = 1024
     SSITSize = 1024
@@ -115,53 +115,55 @@ class O3_ARM_v7a_3(DerivO3CPU):
     iewToRenameDelay = 1
     commitToRenameDelay = 1
     commitToIEWDelay = 1
-    fetchWidth = 3
-    fetchBufferSize = 16
+    fetchWidth = 2
+    fetchBufferSize = 8
     fetchToDecodeDelay = 3
-    decodeWidth = 3
+    decodeWidth = 2
     decodeToRenameDelay = 2
-    renameWidth = 3
+    renameWidth = 2
     renameToIEWDelay = 1
     issueToExecuteDelay = 1
-    dispatchWidth = 6
-    issueWidth = 8
-    wbWidth = 8
+    dispatchWidth = 2
+    issueWidth = 4
+    wbWidth = 4
     fuPool = O3_ARM_v7a_FUP()
     iewToCommitDelay = 1
     renameToROBDelay = 1
-    commitWidth = 8
-    squashWidth = 8
+    commitWidth = 4
+    squashWidth = 4
     trapLatency = 13
     backComSize = 5
     forwardComSize = 5
     numPhysIntRegs = 128
     numPhysFloatRegs = 192
     numIQEntries = 32
-    numROBEntries = 40
+    numROBEntries = 128
 
     switched_out = False
     branchPred = O3_ARM_v7a_BP()
 
 # Instruction Cache
 class O3_ARM_v7a_ICache(BaseCache):
-    hit_latency = 1
-    response_latency = 1
-    mshrs = 2
-    tgts_per_mshr = 8
+    hit_latency = 2
+    response_latency = 2
+    mshrs = 16
+    tgts_per_mshr = 16
     size = '32kB'
-    assoc = 2
+    assoc = 4
     is_top_level = 'true'
+    isL1 = 1
 
 # Data Cache
 class O3_ARM_v7a_DCache(BaseCache):
     hit_latency = 2
     response_latency = 2
-    mshrs = 6
-    tgts_per_mshr = 8
+    mshrs = 16
+    tgts_per_mshr = 16
     size = '32kB'
-    assoc = 2
+    assoc = 4
     write_buffers = 16
     is_top_level = 'true'
+    isL1 = 2
 
 # TLB Cache
 # Use a cache as a L2 TLB
@@ -178,13 +180,13 @@ class O3_ARM_v7aWalkCache(BaseCache):
 
 # L2 Cache
 class O3_ARM_v7aL2(BaseCache):
-    hit_latency = 12
-    response_latency = 12
+    hit_latency = 10
+    response_latency = 10
     mshrs = 16
     tgts_per_mshr = 8
-    size = '1MB'
-    assoc = 16
-    write_buffers = 8
+    size = '512kB'
+    assoc = 8
+    write_buffers = 16
     prefetch_on_access = 'true'
     # Simple stride prefetcher
     prefetcher = StridePrefetcher(degree=8, latency = 1)

@@ -297,6 +297,24 @@ class BaseCache : public MemObject
      * Normally this is all possible memory addresses. */
     const AddrRangeList addrRanges;
 
+    ////////////////////////////////////////////////////////
+    // FIXME new cache status & variables 
+    ////////////////////////////////////////////////////////
+    bool withWdis;
+    bool withSPP;
+    int  wPfail;
+    /* random seed */
+    unsigned randSeed;
+    /* cache id */
+    int  isL1;
+    /* cache size */
+    unsigned size;
+    /* fault map */
+    std::vector<bool> FaultMap;	
+    /* spatial pattern history table */
+    std::vector<uint8_t> PHT;    
+    ////////////////////////////////////////////////////////
+
   public:
     /** System we are currently operating in. */
     System *system;

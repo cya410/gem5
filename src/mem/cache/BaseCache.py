@@ -73,3 +73,11 @@ class BaseCache(MemObject):
     sequential_access = Param.Bool(False,
         "Whether to access tags and data sequentially")
     tags = Param.BaseTags(LRU(), "Tag Store for LRU caches")
+
+    ##################################################################
+    withWdis = Param.Bool(False, "enable word level disable");	
+    withSPP  = Param.Bool(False, "enable word level spatial pattern predictor");	
+    wPfail   = Param.Int (0, "word error rate")
+    randSeed = Param.Int (0, "random seed") 
+    isL1     = Param.Int (0, "L1 cache ID")
+    ##################################################################
