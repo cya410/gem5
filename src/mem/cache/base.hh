@@ -453,6 +453,13 @@ class BaseCache : public MemObject
 
     Stats::Scalar mshr_no_allocate_misses;
 
+    ////////////////////////////////////////////////////////
+    // FIXME
+    Stats::Scalar blk_hits;
+    Stats::Scalar pseudo_misses;
+    Stats::Formula pseudo_miss_rate;
+    ////////////////////////////////////////////////////////
+
     /**
      * @}
      */
@@ -514,6 +521,46 @@ class BaseCache : public MemObject
                                       pkt->getAddr(), pkt->getSize(),
                                       pkt, time, requestBus);
     }
+	
+    //FIXME
+    /////////////////////////////////////////////////////////////////
+    // test correct, used for (wdis) and (wdis + spp)
+    /////////////////////////////////////////////////////////////////
+    uint8_t updateFalPattern(Addr blkAddr, Addr blkSize)
+    {
+	assert((blkAddr & 0x3) == 0);
+	Addr startAddr = (blkAddr % size) >> 2;      
+	Addr reqWords  = blkSize >> 2;
+
+	uint8_t falPattern = 0;
+	for (int i = 0; i < reqWords; i++) 
+		falPattern = FaultMap[startAddr + i]? ((falPattern >> 1) | 0x80) : falPattern >> 1;
+
+	return falPattern;	
+    }
+
+    /////////////////////////////////////////////////////////////////
+    // 
+    /////////////////////////////////////////////////////////////////
+    bool wordMiss(Addr byteOffset, unsigned byteSize, uint8_t strPattern)
+    {
+	Addr wordOffset = byteOffset >> 2;
+	unsigned wordSize = byteSize >> 2;
+	
+	if (wordSize == 0 && byteSize !=0)
+		wordSize = 1;
+ 
+	uint8_t refPattern = 0;
+	for (int i = 0; i < wordSize; i++) {
+		refPattern = refPattern | (1 << (wordOffset + i));
+	}
+
+	bool miss =  !(refPattern == (refPattern & strPattern));
+	//printf("isL1 %d, wordMiss %d, wordOffset %lu, wordSize %u, refPattern %#x, strPattern %#x\n", 
+	//	isL1, miss, wordOffset, wordSize, refPattern, strPattern);
+	return miss;
+    }
+    /////////////////////////////////////////////////////////////////
 
     /**
      * Returns true if the cache is blocked for accesses.

@@ -126,6 +126,16 @@ class CacheBlk
 
     Tick tickInserted;
 
+    /////////////////////////////////////////////////
+    // FIXME
+    /////////////////////////////////////////////////
+    uint8_t curPattern;
+    uint8_t prePattern;
+    uint8_t falPattern;
+    uint8_t strPattern;
+    uint32_t idxPHT;
+    /////////////////////////////////////////////////
+
   protected:
     /**
      * Represents that the indicated thread context has a "lock" on

@@ -798,7 +798,23 @@ BaseCache::regStats()
         .name(name() +".no_allocate_misses")
         .desc("Number of misses that were no-allocate")
         ;
+    /////////////////////////////////////////////////
+    // FIXME
+    blk_hits
+        .name(name() +".blk_hits")
+        .desc("XXX")
+        ;
+    pseudo_misses
+        .name(name() +".pseudo_misses")
+        .desc("XXX")
+        ;
+    pseudo_miss_rate
+        .name(name() + ".pseudo_miss_rate")
+        .desc("XXX")
+        ;
+    pseudo_miss_rate = pseudo_misses / blk_hits;
 
+    /////////////////////////////////////////////////
 }
 
 unsigned int

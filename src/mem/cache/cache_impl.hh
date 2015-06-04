@@ -189,7 +189,7 @@ Cache<TagStore>::satisfyCpuSideRequest(PacketPtr pkt, BlkType *blk,
         if (pkt->getSize() == blkSize) {
             // special handling for coherent block requests from
             // upper-level caches
-            if (pkt->needsExclusive()) {
+            if (pkt->needsExclusive() && !pkt->req->isPseudo) {
                 // if we have a dirty copy, make sure the recipient
                 // keeps it marked dirty
                 if (blk->isDirty()) {
@@ -360,10 +360,28 @@ Cache<TagStore>::access(PacketPtr pkt, BlkType *&blk,
     } else if ((blk != NULL) &&
                (pkt->needsExclusive() ? blk->isWritable()
                                       : blk->isReadable())) {
-        // OK to satisfy access
-        incHitCount(pkt);
-        satisfyCpuSideRequest(pkt, blk);
-        return true;
+    	/////////////////////////////////////////////////
+	// FIXME
+	blk_hits++;
+
+	bool pseudoMiss = false;
+	if (withWdis) {
+		pseudoMiss = wordMiss(pkt->getOffset(blkSize), pkt->getSize(), blk->strPattern);
+	}
+	
+	if (pseudoMiss) {
+		pseudo_misses++;
+
+		pkt->req->isPseudo = true;
+    		incMissCount(pkt);
+    		return false;
+	}
+	else {
+        	incHitCount(pkt);
+        	satisfyCpuSideRequest(pkt, blk);
+        	return true;
+	}
+    	/////////////////////////////////////////////////
     }
 
     // Can't satisfy access normally... either no block (blk == NULL)
@@ -676,9 +694,11 @@ Cache<TagStore>::recvTimingReq(PacketPtr pkt)
                     // internally, and have a sufficiently weak memory
                     // model, this is probably unnecessary, but at some
                     // point it must have seemed like we needed it...
-                    assert(pkt->needsExclusive());
-                    assert(!blk->isWritable());
-                    blk->status &= ~BlkReadable;
+
+                    //assert(pkt->needsExclusive());
+                    //assert(!blk->isWritable());
+		    if (pkt->isWrite())	
+                    	blk->status &= ~BlkReadable;
                 }
 
                 allocateMissBuffer(pkt, time, true);
@@ -712,7 +732,7 @@ PacketPtr
 Cache<TagStore>::getBusPacket(PacketPtr cpu_pkt, BlkType *blk,
                               bool needsExclusive) const
 {
-    bool blkValid = blk && blk->isValid();
+    bool blkValid = blk && blk->isValid() && !cpu_pkt->req->isPseudo;
 
     if (cpu_pkt->req->isUncacheable()) {
         //assert(blk == NULL);
@@ -1416,6 +1436,17 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
             DPRINTF(Cache, "using temp block for %x (%s)\n", addr,
                     is_secure ? "s" : "ns");
         } else {
+	    /////////////////////////////////////////////////////////////
+	    // FIXME
+	    /////////////////////////////////////////////////////////////
+	    // so far this is only working for l1d, need to be extended to l1i soon.
+	    if (isL1) { 
+	    	blk->falPattern = updateFalPattern(blockAlign(pkt->getAddr()), blkSize);
+	
+		// this is temporal
+		blk->strPattern = (uint8_t)(~blk->falPattern & 0xff);
+	    }
+	    /////////////////////////////////////////////////////////////
             tags->insertBlock(pkt, blk);
         }
 
@@ -1452,7 +1483,7 @@ Cache<TagStore>::handleFill(PacketPtr pkt, BlkType *blk,
 
     // if we got new data, copy it in (checking for a read response
     // and a response that has data is the same in the end)
-    if (pkt->isRead()) {
+    if (pkt->isRead() && !(pkt->req->isPseudo && isL1)) {
         assert(pkt->hasData());
         std::memcpy(blk->data, pkt->getConstPtr<uint8_t>(), blkSize);
     }
